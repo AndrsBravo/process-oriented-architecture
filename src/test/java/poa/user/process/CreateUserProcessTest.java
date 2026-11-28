@@ -1,4 +1,4 @@
-package poa;
+package poa.user.process;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import poa.shared.events.ProcessState;
 import poa.user.entities.User;
-import poa.user.process.CreateUserProcessExecutor;
 
 public class CreateUserProcessTest {
 
@@ -21,7 +20,7 @@ public class CreateUserProcessTest {
          */
         var user = new User("Andres", "Bravo", "abravo123", "andres.bravo@example.com", "password123");
 
-        var createUserProcess = CreateUserProcessExecutor.Init(user)
+        var createUserProcess = CreateUserProcessExecutor.build().Init(user)
                 .OnStateChange(state -> {
                     System.out.println("----   Process Change Event Received State: " + state);
                 })
@@ -54,7 +53,7 @@ public class CreateUserProcessTest {
          */
         var user = new User("Andres", "Bravo", "abravo123", "andres.bravoexample.com", "password123");
 
-        var createUserProcess = CreateUserProcessExecutor.Init(user)
+        var createUserProcess = CreateUserProcessExecutor.build().Init(user)
                 .OnStateChange(state -> {
                     System.out.println("----   Process Change Event Received State: " + state);
                 }).Execute();

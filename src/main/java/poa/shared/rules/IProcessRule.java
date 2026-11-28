@@ -1,10 +1,8 @@
 package poa.shared.rules;
 
-import poa.user.process.CreateUserProcess;
-
 @FunctionalInterface
-public interface IProcessRule {
+public interface IProcessRule<P> {
 
-    void apply(CreateUserProcess createUserProcess);
+    void apply(P process);
 
 }

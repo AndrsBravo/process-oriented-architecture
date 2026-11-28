@@ -183,3 +183,154 @@ También **builder y factory de sí mismo y de proceso**. Cómo builder recibe l
 4. `public ProcessExecutor OnBeforeRule(IProcessBeforeRuleHandler handler)` método de clase, recibe el manejador de evento `IProcessBeforeRuleHandler`, para que el ejecutor notifique se aplicara una regla.  
 5. `public ProcessExecutor OnAfterRule(IProcessAfterRuleHandler handler)` método de clase, recibe el manejador de evento `IProcessAfterRuleHandler`, para que el ejecutor notifique que una regla ya se aplico.  
 6. `public Process Execute()` método de clase, inicia la ejecución del proceso y lo retorna.
+
+## Implementación con genéricos
+
+De poco aprovecha la propuesta de la **Arquitectura de Software Orientada a Procesos**, con procesos tipados, como en el ejemplo de la primera version de este código. (véase branch poa.v1.0).
+
+En esta version realizamos la implementación recomendada para aprovechar todos los beneficios.
+
+### Estructura de procesos genéricos
+
+Para esta implementación, existe un único **proceso genérico** `Process<T>`, con un tipo de entrada y retorno, del que extienden todos los demás casos de uso. Podrán existir procesos de diversas implementaciones según las necesidades del proyecto. Ejemplo, procesos con tipos diferentes de entrada y retorno `Process<T,R>`
+
+Las modificaciones se describen de manera siguiente:
+
+1. Las clases base se hacen genéricas, `Process<T>`, `ProcessExecutor<P extends Process<T>,T>` y `IProcessRule<Process<T>>`, igual sucede con sus clases secundarias para lanzar eventos.
+
+#### Proceso
+
+Nueva estructura de la clase `Process`
+
+```java
+
+public class Process<T> {
+
+    private Log log;
+    private T objInit;
+    private final Long id;
+    private boolean active;
+    private final List<Log> logs;
+    private final String processName;
+    private ProcessState processState;
+    private ServiceResult<T> result;
+    private IProcessExceptionHandler processExceptionHandler;
+    private IProcessStateChangeHandler processStateChangeHandler;
+
+    public Process(String processName) {
+        this.logs = new ArrayList<>();
+        this.id = new Random().nextLong();
+        this.processName = processName;
+    }
+}
+```
+
+- Los campos privados de inicio y retorno, también sus métodos de lectura y escritura pasan a ser genéricos,  `private T objInit;` y `private ServiceResult<T> result;`
+- Recibirá por constructor el nombre del proceso de las clases que extienda.
+
+#### Reglas
+
+Nueva estructura de la Interfaz `IProcessRule`
+
+```java
+
+@FunctionalInterface
+public interface IProcessRule<P> {
+
+    void apply(P process);
+
+}
+
+```
+
+- Las reglas que la implementen deben especificar al proceso que aplica la regla.
+
+#### Ejecutor
+
+Nueva estructura de la clase `ProcessExecutor`
+
+```java
+
+public class ProcessExecutor<P extends Process<T>, T> {
+
+    private final P process;
+    private final Iterator<Supplier<IProcessRule<P>>> processRules;
+    private IProcessBeforeRuleHandler<P, T> beforeRuleHandler;
+    private IProcessAfterRuleHandler<P, T> afterRuleHandler;
+
+    public ProcessExecutor(Supplier<P> processSupplier, Supplier<IProcessRule<P>>... rules) {
+        this.process = processSupplier.get();
+        this.processRules = Arrays.asList(rules).iterator();
+    }
+}
+```
+
+- Debe extenderse suministrando 2 parámetros: el proceso, que es una extensión de `Process`, `P extends Process<T>` y el tipo de dato de entrada `<T>`
+
+- Por constructor debe recibir una instancia del proceso y la lista de reglas.
+
+### Implementación en el caso de ejemplo (CreateUserProcess)
+
+Para las implementaciones concretas, como en el ejemplo que vamos desarrollando, extendemos las clases genéricas  `Process<T>` y `ProcessExecutor<P extends Process<T>, T>` e implementamos la interfaz `IProcessRule<P>`. De lo que se obtiene el resultado siguiente:
+
+**Proceso** CreateUserProcess.java
+
+```java
+public class CreateUserProcess extends Process<User> {
+
+    public CreateUserProcess() {
+
+        super("create_new_user_process");
+    }
+
+}
+
+```
+
+**Ejecutor** CreateUserProcessExecutor.java
+
+```java 
+public class CreateUserProcessExecutor extends ProcessExecutor<CreateUserProcess, User> {
+
+    public CreateUserProcessExecutor() {
+
+        super(CreateUserProcess::new,
+                ValidateUserEmailRule::new,
+                ValidateUserNameRule::new,
+                HashUserPasswordRule::new,
+                CreateUserRule::new);
+    }
+
+    public static CreateUserProcessExecutor build() {
+        return new CreateUserProcessExecutor();
+    }
+
+}
+
+```
+
+- Se recomienda implementar en cada extension de la clase `ProcessExecutor` un método de clase `build()` como Factory Method.
+
+**Regla** CreateUserProcessExecutor.java
+
+```java
+
+public class CreateUserRule implements IProcessRule<CreateUserProcess> {
+
+    @Override
+    public void apply(CreateUserProcess createUserProcess) {
+    }
+}
+```
+
+**Usar** de esta forma: `CreateUserProcessTest.java`
+
+```java
+
+ @Test
+public void shouldBeCompleted() {
+    var user = new User("Andres", "Bravo", "abravo123", "andres.bravo@example.com", "password123");
+
+    var createUserProcess = CreateUserProcessExecutor.build().Init(user).Execute();
+}
+```

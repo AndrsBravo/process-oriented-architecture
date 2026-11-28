@@ -4,7 +4,7 @@ import poa.shared.logs.Log;
 import poa.shared.rules.IProcessRule;
 import poa.user.process.CreateUserProcess;
 
-public class ValidateUserNameRule implements IProcessRule {
+public class ValidateUserNameRule implements IProcessRule<CreateUserProcess> {
 
     @Override
     public void apply(CreateUserProcess createUserProcess) {

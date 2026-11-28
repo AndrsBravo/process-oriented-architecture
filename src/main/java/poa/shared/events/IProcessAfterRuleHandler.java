@@ -1,10 +1,9 @@
 package poa.shared.events;
 
 import poa.shared.rules.IProcessRule;
-import poa.user.process.CreateUserProcess;
 
 @FunctionalInterface
-public interface IProcessAfterRuleHandler {
+public interface IProcessAfterRuleHandler<P extends poa.shared.process.Process<T>, T> {
 
-    public void onAfterRule(IProcessRule rule, CreateUserProcess process);
+    public void onAfterRule(IProcessRule rule, P process);
 }
